@@ -1,0 +1,72 @@
+import sqlite3
+
+def init_db():
+    conn = sqlite3.connect("discussion.db")
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, 
+            content TEXT, 
+            likes INTEGER DEFAULT 0, 
+            dislikes INTEGER DEFAULT 0
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def get_posts():
+    conn = sqlite3.connect("discussion.db")
+    c = conn.cursor()
+    c.execute("SELECT * FROM posts")
+    posts = c.fetchall()
+    conn.close()
+    return posts
+
+def update_likes(post_id, like=True):
+    conn = sqlite3.connect("discussion.db")
+    c = conn.cursor()
+    if like:
+        c.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?", (post_id,))
+    else:
+        c.execute("UPDATE posts SET dislikes = dislikes + 1 WHERE id = ?", (post_id,))
+    conn.commit()
+    conn.close()
+3. Create app.py (Main Streamlit App)
+python
+Copy
+Edit
+import streamlit as st
+from database import init_db, get_posts, update_likes
+
+# Initialize database
+init_db()
+
+st.title("Discussion Board with Like/Dislike System")
+
+# Add a post
+if st.button("Add Sample Post"):
+    conn = sqlite3.connect("discussion.db")
+    c = conn.cursor()
+    c.execute("INSERT INTO posts (content) VALUES ('This is a sample discussion post.')")
+    conn.commit()
+    conn.close()
+    st.experimental_rerun()
+
+# Display posts
+posts = get_posts()
+for post in posts:
+    post_id, content, likes, dislikes = post
+    st.write(f"**{content}**")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button(f"👍 {likes}", key=f"like_{post_id}"):
+            update_likes(post_id, like=True)
+            st.experimental_rerun()
+    
+    with col2:
+        if st.button(f"👎 {dislikes}", key=f"dislike_{post_id}"):
+            update_likes(post_id, like=False)
+            st.experimental_rerun()
+    
